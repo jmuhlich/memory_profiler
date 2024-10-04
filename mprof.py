@@ -269,6 +269,9 @@ This file contains the process memory consumption, in Mb (one value per line).""
             if not program[0].startswith("python"):
                 program.insert(0, sys.executable)
             cmd_line = get_cmd_line(program)
+            # FIXME Writing to the same log file in the parent and child without
+            # explicit synchronization seems like a race. Should probably create
+            # a temp file for the child to write to or use a named pipe.
             extra_args = ["-m", "memory_profiler", "--timestamp", "-o", mprofile_output]
             if args.include_children:
                 extra_args.append("--include-children")

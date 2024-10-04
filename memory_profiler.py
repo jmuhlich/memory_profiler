@@ -1361,3 +1361,7 @@ if __name__ == '__main__':
             prof.show_results(stream=out_file)
         else:
             show_results(prof, precision=args.precision, stream=out_file)
+        # Output doesn't get flushed to the file in certain cases without an
+        # explicit close() or flush() here. Observed when profiling tensorflow
+        # but the specific cause is not known.
+        out_file.close()
