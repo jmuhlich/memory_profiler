@@ -305,36 +305,28 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
         value to subtract to xloc.
     """
     try:
-        import pylab as pl
+        import matplotlib.pyplot as pl
+        import matplotlib.transforms as mtf
     except ImportError as e:
         print("matplotlib is needed for plotting.")
         print(e)
         sys.exit(1)
-    height_ratio = 20.
-    vsize = (pl.ylim()[1] - pl.ylim()[0]) / height_ratio
-    hsize = (pl.xlim()[1] - pl.xlim()[0]) / (3. * height_ratio)
-
-    bracket_x = pl.asarray([hsize, 0, 0, hsize])
-    bracket_y = pl.asarray([vsize, vsize, -vsize, -vsize])
 
     # Matplotlib workaround: labels starting with _ aren't displayed
     if label[0] == '_':
         label = ' ' + label
-    if options.xlim is None or options.xlim[0] <= (xloc[0] - xshift) <= options.xlim[1]:
-        pl.plot(bracket_x + xloc[0] - xshift, bracket_y + yloc[0],
-                "-" + color, linewidth=2, label=label)
-    if options.xlim is None or options.xlim[0] <= (xloc[1] - xshift) <= options.xlim[1]:
-        pl.plot(-bracket_x + xloc[1] - xshift, bracket_y + yloc[1],
-                "-" + color, linewidth=2)
-
-        # TODO: use matplotlib.patches.Polygon to draw a colored background for
-        # each function.
-
-        # with maplotlib 1.2, use matplotlib.path.Path to create proper markers
-        # see http://matplotlib.org/examples/pylab_examples/marker_path.html
-        # This works with matplotlib 0.99.1
-        ## pl.plot(xloc[0], yloc[0], "<"+color, markersize=7, label=label)
-        ## pl.plot(xloc[1], yloc[1], ">"+color, markersize=7)
+    fig = pl.gcf()
+    ax = fig.gca()
+    rect = pl.Rectangle((xloc[0] - xshift, yloc[0]), xloc[1] - xloc[0], yloc[1] - yloc[0], ec=color, fc='none', lw=2)
+    ax.add_patch(rect)
+    ms = 10
+    mh = ms / 2
+    tf_left = mtf.offset_copy(ax.transData, fig, x=-mh, y=0, units='points')
+    tf_right = mtf.offset_copy(ax.transData, fig, x=+mh, y=0, units='points')
+    ax.plot(xloc[0] - xshift, yloc[0], marker='>', ms=ms, transform=tf_left, color=color, mec='none', label=label, lw=0)
+    ax.plot(xloc[1] - xshift, yloc[1], marker='<', ms=ms, transform=tf_right, color=color, mec='none')
+    ax.plot(xloc[0] - xshift, yloc[0], marker='|', ms=ms, mew=2, mec=color)
+    ax.plot(xloc[1] - xshift, yloc[1], marker='|', ms=ms, mew=2, mec=color)
 
 
 def read_mprofile_file(filename):
@@ -458,7 +450,7 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
         # Append slope to label
         mem_line_label = mem_line_label + " slope {0:.5f}".format(mem_trend[0])
 
-    pl.plot(t, mem, "+-" + mem_line_colors[index % len(mem_line_colors)],
+    pl.plot(t, mem, "o-" + mem_line_colors[index % len(mem_line_colors)], ms=1, lw=0.5,
             label=mem_line_label)
 
     if show_trend_slope:
@@ -706,9 +698,9 @@ def flame_plotter(filename, index=0, timestamps=True, children=True, options=Non
     if timestamps:
         pl.hlines(max_mem,
                   pl.xlim()[0] + 0.001, pl.xlim()[1] - 0.001,
-                  colors="r", linestyles="--")
+                  colors="r", linestyles="--", lw=1)
         pl.vlines(t[max_mem_ind], bottom, top,
-                  colors="r", linestyles="--")
+                  colors="r", linestyles="--", lw=1)
 
     pl.sca(ax)
 
@@ -830,8 +822,7 @@ such file in the current directory."""
     # case it obscures part of the lineplot
     if not args.flame_mode:
         leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        leg.get_frame().set_alpha(0.5)
-        pl.grid()
+        pl.grid(lw=0.3)
 
     if args.output:
         pl.savefig(args.output)
