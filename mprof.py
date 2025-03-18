@@ -290,8 +290,8 @@ This file contains the process memory consumption, in Mb (one value per line).""
         sys.exit(p.returncode)
 
 
-def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
-    """Add two brackets on the memory line plot.
+def add_brackets(xloc, yloc, yrange, xshift=0, color="r", label=None, options=None):
+    """Add a timestamp-framing box on the memory line plot.
 
     This function uses the current figure.
 
@@ -301,6 +301,8 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
         brackets location (on horizontal axis).
     yloc: tuple with 2 values
         brackets location (on vertical axis)
+    yrange: tuple with 2 values
+        box bottom and top location
     xshift: float
         value to subtract to xloc.
     """
@@ -317,7 +319,9 @@ def add_brackets(xloc, yloc, xshift=0, color="r", label=None, options=None):
         label = ' ' + label
     fig = pl.gcf()
     ax = fig.gca()
-    rect = pl.Rectangle((xloc[0] - xshift, yloc[0]), xloc[1] - xloc[0], yloc[1] - yloc[0], ec=color, fc='none', lw=2)
+    rect = pl.Rectangle(
+        (xloc[0] - xshift, yrange[0]), xloc[1] - xloc[0], yrange[1] - yrange[0], ec=color, fc='none', lw=2
+    )
     ax.add_patch(rect)
     ms = 10
     mh = ms / 2
@@ -501,7 +505,13 @@ def plot_file(filename, index=0, timestamps=True, children=True, options=None):
         f_labels = function_labels(ts.keys())
         for f, exec_ts in ts.items():
             for execution in exec_ts:
-                add_brackets(execution[:2], execution[2:], xshift=global_start,
+                ia, ib = np.searchsorted(t, np.subtract(execution[:2], global_start))
+                mem_span = mem[ia:ib]
+                yrange = [
+                    min(mem_span.min(), execution[2]),
+                    max(mem_span.max(), execution[3]),
+                ]
+                add_brackets(execution[:2], execution[2:], yrange, xshift=global_start,
                              color=all_colors[func_num % len(all_colors)],
                              label=f_labels[f]
                                    + " %.3fs" % (execution[1] - execution[0]), options=options)
